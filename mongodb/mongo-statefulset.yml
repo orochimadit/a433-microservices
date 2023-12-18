@@ -1,0 +1,90 @@
+#versi Api yang didefinisikan
+apiVersion: apps/v1
+#jenis objek kubernetes StatuefulSet
+kind: StatefulSet
+#metadatta untuk Statefulset
+metadata: 
+  #nama statefulset
+  name: mongodb
+#spesifikasi untuk pod
+spec:
+  #nama service yang digunakan oleh StatefulSet
+  serviceName: mongo-service
+  #jumlah replika Pod yang akan dibuat
+  replicas: 1
+  #selektor untuk memilih Pod
+  selector:
+  #pod yang dipilih harus memiliki label sesuai ketentuan (app: database dan selector: mongodb)
+    matchLabels:
+      app: database
+      selector: mongodb
+  #template untuk membuat pod
+  template:
+    #metadata untuk pod
+    metadata:
+      #label Pod
+      labels:
+        app: database
+        selector: mongodb
+    #spesifikasi untuk pod
+    spec:
+      #konfigurasi kontainer dalam pod
+      containers:
+        #nama container
+      - name: mongodb
+         #nama image yang digunakan untuk membuat container
+        image: mongo:4.4.3
+        #port yang digunakan
+        ports:
+        - containerPort: 27017
+         #environtment variabel yang dibutuhkan oleh aplikasi
+        env:
+        #nama environtment variable
+        - name: MONGO_INITDB_ROOT_USERNAME_FILE
+        #nilai dari env
+          value: /etc/mongo-credentials/MONGO_ROOT_USERNAME
+          #nama environtment variable
+        - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+        #nilai dari env
+          value: /etc/mongo-credentials/MONGO_ROOT_PASSWORD
+        #Volume Mount yang diekseskusi oleh aplikasi
+        volumeMounts:
+          #Volume Moount dan path didalam container yang akan digunakan 
+          #untuk persistent volume
+        - name: mongo-data
+          mountPath: /data/db
+            #Volume Moount dan path didalam container yang akan digunakan 
+          #untuk Config Map
+        - name: mongo-config
+          mountPath: /config
+            #Volume Moount dan path didalam container yang akan digunakan 
+          #untuk Secret
+        - name: mongo-credentials
+          mountPath: /etc/mongo-credentials
+      #Volume mount dan path didalam yang didefinisikan pada aplikasi
+      volumes:
+        #nama Persisten Volume yang akan digunakan pada aplikasi
+      - name: mongo-data
+        #nama persistent VolumeClaim yang akan digunakan
+        persistentVolumeClaim:
+          claimName: mongo-pvc
+      #nama configmap yang akan digunakan
+      - name: mongo-config
+        configMap: 
+          name: mongo-config
+          #key dan  path pada config map yang akan digunakan
+          items:
+          - key: mongo.conf
+            path: mongo.conf
+      #nama Credentials yang akan digunakan
+      - name: mongo-credentials
+        secret:
+        #nama secret yang digunakan
+          secretName: mongo-credentials
+          items:
+          - key: MONGO_ROOT_USERNAME
+            path: MONGO_ROOT_USERNAME
+          - key: MONGO_ROOT_PASSWORD
+            path: MONGO_ROOT_PASSWORD
+      
+
